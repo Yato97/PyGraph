@@ -9,7 +9,8 @@ L'idée de ce module `pygraph` est de créer un objet `Graph` (ou `DiGraph` ou `
 
 ## Principales fonctionnalités
 
-- Créer un graphe non orienté (`Graph`), un graphe orienté (`DiGraph`) ou bi-partie (`BiPartite`)
+- Créer un graphe non orienté (`Graph`), un graphe orienté (`DiGraph`) ou bi-partie (`BiPartite`). La création d'un graphe dans un notebook jupyter est particulièrement intéressante puisqu'alors la vue du graphe est directement possible dans une cellule :
+![graphviz notebook](examples/graphviz_notebook.png)
 - Ajouter des sommets et des liens (nom générique pour arètes ou arcs). Pour les graphes non orienté possibilité de créer un graphe aléatoire (basé sur `erdos_renyi_graph` de networkx, voir le [site officiel de NetworkX](https://networkx.org/documentation/stable/tutorial.html#graph-generators-and-graph-operations) pour plus de détails)
 - Retirer des sommets et des liens (la construction d'un graphe bi-partie se fait en créant d'abord un graphe complet puis en retirant des liens)
 - Changer couleurs et étiquettes des sommets
