@@ -95,3 +95,8 @@ g.same_position_as(g2) # attribue à chaque sommet s de g la même position que 
 g.resize(size, s=None) # le cercle du sommet fera size de diamètre ; si s non précisé s'applique à tous les sommets
 g.resize() # redonne la valeur initiale de 0.3 (inch) aux dimensions des sommets
 ```
+
+### Sauver dans un fichier
+```python
+g.write(filename='output', format='svg') # création d'un fichier <filename>.<fmt> contenant le dessin du graphe et de <filename> pour le source graphviz du graphe
+```
