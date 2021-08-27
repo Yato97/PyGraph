@@ -3,4 +3,7 @@ CC BY-NC-SA 4.0 http://creativecommons.org/licenses/by-nc-sa/4.0/
 
 /!\ ATTENTION 
 
-pygraph s'appuie sur networkx qui possède sa Licence propre : https://networkx.org/documentation/stable/
+pygraph s'appuie sur :
+
+- networkx / sa licence : https://networkx.org/documentation/stable/
+- graphviz / sa licence : https://graphviz.readthedocs.io/en/stable/license.html
