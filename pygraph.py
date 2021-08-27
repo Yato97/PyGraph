@@ -13,6 +13,7 @@ TODO
 ----
     - Plus de tests. Il reste probablement beaucoup de bugs à corriger
     - Ajouter d'autres algorithmes sur les graphes
+    - traiter des graphes valués
 """
 
 import graphviz as gv
