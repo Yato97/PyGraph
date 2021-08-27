@@ -7,19 +7,17 @@ Avec visualisation via Graphviz et possibilité de modifier quelques propriété
 Auteur  : Sébastien Hoarau
 Date    : 2021-08
 Licence : CC BY-NC-SA 4.0 http://creativecommons.org/licenses/by-nc-sa/4.0/
-Site    : sebhoa.gitlab.io/iremi/mod_graph/
+Site    : gitlab.com/sebhoa/pygraph/
 
 TODO
 ----
     - Plus de tests. Il reste probablement beaucoup de bugs à corriger
-    - Gérer le retrait de sommets
     - Ajouter d'autres algorithmes sur les graphes
 """
 
 import graphviz as gv
 import networkx as nx
 import random
-from constantes import *
 
 # ----------
 # CONSTANTES
