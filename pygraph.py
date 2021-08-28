@@ -83,6 +83,7 @@ class NodeView:
         self.__color_id = color_id
         self.__pos = None
         self.__label = str(node_id)
+        self.__ech = 1
     
     # Public attributes
     
@@ -105,7 +106,15 @@ class NodeView:
     @pos.setter
     def pos(self, pos):
         self.__pos = pos
+
+    @property
+    def ech(self):
+        return self.__ech
     
+    @ech.setter
+    def ech(self, ech):
+        self.__ech = ech
+
     @property
     def label(self):
         return self.__label
@@ -166,8 +175,10 @@ class NodeView:
         if self._is_positioned():
             self.pos = self.pos[0] + dx, self.pos[1] + dy
 
-    def place(self, ech=1):
+    def place(self, ech=None):
         if self._is_positioned():
+            ech = self.ech if ech is None else ech
+            self.ech = ech
             x, y = self.pos
             pos = f'{x*ech},{y*ech}!'
             self.__gv.node(str(self.id), pos=pos)
@@ -235,6 +246,10 @@ class Graph:
     def view(self):
         return self.__view
     
+    @view.setter
+    def view(self, view):
+        self.__view = view
+
     @property
     def engine(self):
         return self.__engine
@@ -307,6 +322,7 @@ class Graph:
         g = Graph(nodes_count, engine=self.engine)
         # g.init_view()
         g.add_edges_from(self.edges())
+        g.same_position_as(self)
         return g
 
     # -- other informations usefull for a lot of graphs algorithms
@@ -329,8 +345,10 @@ class Graph:
         
     def reset_view(self, engine=None):
         engine = self.engine if engine is None else engine
+        d_position = self.export_position()
         self.__view = gv.Graph(engine=engine, format='svg', node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         self.init_view()
+        self.import_position(d_position)
         
     def init_nodes_view(self):
         for node_id in self.node_ids():
@@ -348,7 +366,7 @@ class Graph:
             self.node_view(node_id).pos = pos
         self.scale(ech)
         
-    def scale(self, ech=1):
+    def scale(self, ech=None):
         for node_id in self.node_ids():
             self.node_view(node_id).place(ech)
         
@@ -357,6 +375,7 @@ class Graph:
             if node_id in self.node_ids():
                 node_view = self.node_view(node_id) 
                 node_view.pos = g.node_view(node_id).pos
+                node_view.ech = g.node_view(node_id).ech
                 node_view.place()
 
     def _rec_move(self, node_ids, seen, dx, dy):
@@ -383,6 +402,19 @@ class Graph:
         else:
                 self.node_view(node_id).size(*dim)
             
+    def export_position(self):
+        lnodes = list(self.node_ids())
+        d = {node_id:self.node_view(node_id).pos for node_id in self.node_ids()}
+        d['ech'] = self.node_view(lnodes[0]).ech if lnodes else 1
+        return d
+
+    def import_position(self, d_position):
+        ech = d_position['ech']
+        for node_id in self.node_ids():
+            if node_id in d_position:
+                self.node_view(node_id).pos = d_position[node_id]
+                self.node_view(node_id).place(ech)
+
     # -- about labels
     
     def set_labels(self, labels=None):
@@ -542,14 +574,17 @@ class DiGraph(Graph):
         
     def reset_view(self, engine=None):
         engine = self.engine if engine is None else engine
-        self.__view = gv.Digraph(engine=engine, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+        d_position = self.export_position()
+        self.view = gv.Digraph(engine=engine, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         self.init_view()
+        self.import_position(d_position)
 
     def copy(self):
         nodes_count = self.number_of_nodes()
         g = DiGraph(nodes_count, engine=self.engine)
         g.init_view()
         g.add_edges_from(self.edges())
+        g.same_position_as(self)
         return g
 
     def degree(self, node_id):
@@ -590,4 +625,5 @@ class BiPartite(Graph):
         g = Graph(nodes_count, bipartite=True, n1=self.n1, n2=self.n2, engine=self.engine)
         g.init_view()
         g.add_edges_from(self.edges())
+        g.same_position_as(self)
         return g
