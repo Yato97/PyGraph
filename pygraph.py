@@ -288,7 +288,7 @@ class Graph:
     
     def add_edges_from(self, iterable=None):
         for s in iterable:
-            self.add_edge(*s)
+            self.add_edge(*s)  
     
     # -- about removing elements
 
@@ -320,8 +320,12 @@ class Graph:
     def copy(self):
         nodes_count = self.number_of_nodes()
         g = Graph(nodes_count, engine=self.engine)
-        # g.init_view()
-        g.add_edges_from(self.edges())
+        #g.init_view()
+        if self.is_weighted():
+            g.add_weighted_edges_from(self.edges())
+        else:
+            g.add_edges_from(self.edges())
+            
         g.same_position_as(self)
         return g
 
@@ -430,6 +434,12 @@ class Graph:
             labels += NOLABEL * max(0, nodes_count - len(labels))
             for node_id in self.node_ids():
                 self.node_view(node_id).label = labels[node_id]
+                
+    def set_labels_fromId(self, labels, node_id):
+        """
+        Change one nodes label with the str labels parameter
+        """
+        self.node_view(node_id).label = labels
     
     def label_on(self):
         for node_id in self.node_ids():
@@ -550,6 +560,79 @@ class Graph:
         for node_id, color_id in dict_colors.items():
             self.node_view(node_id).color_id = color_id
         return len(set(dict_colors.values()))
+    
+    
+    # ----------------------- TEST ------------------- #
+    # ------------------------------------------------ #
+    
+    # ------------------ DIJKSTRA ----------------#
+    def show_dijkstra_shortest_path(self, iterable):
+        # Show the shortest path without other path :  (iterable => shortest path)
+        Gtemp = self.copy()
+        nodeList = list(self.model.nodes)
+        res = list(self.model.nodes)
+        for i in range(len(nodeList)):
+            for x in range(len(iterable)):
+                if nodeList[i] == iterable[x]:
+                    res.remove(iterable[x])
+        for i in range(len(res)):
+            Gtemp.remove_node(res[i])
+        
+        return Gtemp.view
+    
+    def colorise_dijkstra_shortest_path(self, iterable):
+        # Colorise the shortest path : (green = srx, dst) (iterable => shortest path)
+        for i in range(len(iterable)):
+            if i == 0 or i >= (len(iterable)-1):
+                self.color_on(iterable[i], 3)
+            else :
+                self.color_on(iterable[i], 2)
+    
+    def dijkstra_path(self, src_node_id, dst_node_id):
+        # dijkstra shortest weighted path
+        return nx.dijkstra_path(self.model, src_node_id, dst_node_id)
+
+    def dijkstra_path_length(self, src_node_id, dst_node_id):
+        # Dijkstra : Amount of the length(shortest path)
+        return nx.dijkstra_path_length(self.model, src_node_id, dst_node_id)
+    # ------------------ DIJKSTRA ---------------#
+    
+    
+    # ------------------- GRAPH -----------------#
+    def add_weighted_edge(self, s1, s2, p):
+        self.model.add_edge(s1, s2, weight=p)
+        self.view.edge(str(s1), str(s2), str(p))
+    
+    def add_weighted_edges_from(self, iterable=None):
+        for s in iterable:
+            self.add_weighted_edge(*s) 
+            
+    def predecessor(self, node_id):
+        for i in self.model[node_id]:
+            print( "Node_id : " )
+            print(self.model[node_id][i]['label'])
+            print( "=> weight" )
+            print(self.model[node_id][i]['weight']) #poids
+            
+    def neighbors_weight(self, node_id):
+        # Retourne la liste des "voisins & poids"
+        return str(self.model.adj[node_id])
+    
+    def is_weighted(self):
+        # Return true if the graph is ponderate
+        return nx.is_weighted(self.model)
+    
+    def get_node_attributes(self, node_id):
+        return nx.get_node_attributes(self.model,node_id)
+    
+    def printGraphInfo(self):
+        for node, info in self.model.adj.items():
+            for voisin, info_lien in info.items(): 
+                print(f"Lien [{node} et {voisin}] => poid {info_lien['weight']}")
+    # ------------------- GRAPH -----------------#
+        
+    # ------------------------------------------------ #
+    # ----------------------- TEST ------------------- #
             
             
 class DiGraph(Graph):
@@ -583,9 +666,16 @@ class DiGraph(Graph):
         nodes_count = self.number_of_nodes()
         g = DiGraph(nodes_count, engine=self.engine)
         g.init_view()
-        g.add_edges_from(self.edges())
+        if self.is_weighted():
+            g.add_weighted_edges_from(self.edges())
+        else:
+            g.add_edges_from(self.edges())
         g.same_position_as(self)
         return g
+    
+    # ------------------------------------------------------------------------------- #
+    
+    # ------------------------------------------------------------------------------- #
 
     def degree(self, node_id):
         return len(self.neighbors(node_id))
@@ -627,3 +717,4 @@ class BiPartite(Graph):
         g.add_edges_from(self.edges())
         g.same_position_as(self)
         return g
+
