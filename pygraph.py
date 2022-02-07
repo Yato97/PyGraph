@@ -565,39 +565,6 @@ class Graph:
     # ----------------------- TEST ------------------- #
     # ------------------------------------------------ #
     
-    # ------------------ DIJKSTRA ----------------#
-    def show_dijkstra_shortest_path(self, iterable):
-        # Show the shortest path without other path :  (iterable => shortest path)
-        Gtemp = self.copy()
-        nodeList = list(self.model.nodes)
-        res = list(self.model.nodes)
-        for i in range(len(nodeList)):
-            for x in range(len(iterable)):
-                if nodeList[i] == iterable[x]:
-                    res.remove(iterable[x])
-        for i in range(len(res)):
-            Gtemp.remove_node(res[i])
-        
-        return Gtemp.view
-    
-    def colorise_dijkstra_shortest_path(self, iterable):
-        # Colorise the shortest path : (green = srx, dst) (iterable => shortest path)
-        for i in range(len(iterable)):
-            if i == 0 or i >= (len(iterable)-1):
-                self.color_on(iterable[i], 3)
-            else :
-                self.color_on(iterable[i], 2)
-    
-    def dijkstra_path(self, src_node_id, dst_node_id):
-        # dijkstra shortest weighted path
-        return nx.dijkstra_path(self.model, src_node_id, dst_node_id)
-
-    def dijkstra_path_length(self, src_node_id, dst_node_id):
-        # Dijkstra : Amount of the length(shortest path)
-        return nx.dijkstra_path_length(self.model, src_node_id, dst_node_id)
-    # ------------------ DIJKSTRA ---------------#
-    
-    
     # ------------------- GRAPH -----------------#
     def add_weighted_edge(self, s1, s2, p):
         self.model.add_edge(s1, s2, weight=p)
@@ -674,7 +641,6 @@ class DiGraph(Graph):
         return g
     
     # ------------------------------------------------------------------------------- #
-    
     # ------------------------------------------------------------------------------- #
 
     def degree(self, node_id):
@@ -717,4 +683,5 @@ class BiPartite(Graph):
         g.add_edges_from(self.edges())
         g.same_position_as(self)
         return g
+
 
