@@ -322,7 +322,7 @@ class Graph:
         g = Graph(nodes_count, engine=self.engine)
         #g.init_view()
         if self.is_weighted():
-            g.add_weighted_edges_from(self.edges())
+            g.add_weighted_edges_from(self.weighted_edges())
         else:
             g.add_edges_from(self.edges())
             
@@ -359,9 +359,14 @@ class Graph:
             self.model.nodes[node_id]['view'] = NodeView(self.view, node_id)
             self.node_view(node_id).create()
 
+
     def init_edges_view(self):
-        for s1, s2 in self.edges():
-            self.view.edge(str(s1), str(s2))
+        if self.is_weighted():
+            for s1, s2, p in self.weighted_edges():
+                self.view.edge(str(s1), str(s2), str(p))
+        else: 
+            for s1, s2 in self.edges():
+                self.view.edge(str(s1), str(s2))
             
     # -- about nodes positionning and resizing
     
@@ -596,6 +601,20 @@ class Graph:
         for node, info in self.model.adj.items():
             for voisin, info_lien in info.items(): 
                 print(f"Lien [{node} et {voisin}] => poid {info_lien['weight']}")
+    
+    def weighted_edges(self):
+        listE = list()
+        res = list()
+        for node, info in self.model.adj.items():
+            for voisin, info_lien in info.items(): 
+                listE.append(node)
+                listE.append(voisin)
+                listE.append(info_lien['weight'])
+                res.append(listE)
+                listE = list()
+        return res
+                                           
+                
     # ------------------- GRAPH -----------------#
         
     # ------------------------------------------------ #
@@ -634,7 +653,7 @@ class DiGraph(Graph):
         g = DiGraph(nodes_count, engine=self.engine)
         g.init_view()
         if self.is_weighted():
-            g.add_weighted_edges_from(self.edges())
+            g.add_weighted_edges_from(self.weighted_edges())
         else:
             g.add_edges_from(self.edges())
         g.same_position_as(self)
