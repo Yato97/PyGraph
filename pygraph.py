@@ -288,7 +288,7 @@ class Graph:
     
     def add_edges_from(self, iterable=None):
         for s in iterable:
-            self.add_edge(*s)
+            self.add_edge(*s)  
     
     # -- about removing elements
 
@@ -320,8 +320,12 @@ class Graph:
     def copy(self):
         nodes_count = self.number_of_nodes()
         g = Graph(nodes_count, engine=self.engine)
-        # g.init_view()
-        g.add_edges_from(self.edges())
+        #g.init_view()
+        if self.is_weighted():
+            g.add_weighted_edges_from(self.weighted_edges())
+        else:
+            g.add_edges_from(self.edges())
+            
         g.same_position_as(self)
         return g
 
@@ -355,9 +359,14 @@ class Graph:
             self.model.nodes[node_id]['view'] = NodeView(self.view, node_id)
             self.node_view(node_id).create()
 
+
     def init_edges_view(self):
-        for s1, s2 in self.edges():
-            self.view.edge(str(s1), str(s2))
+        if self.is_weighted():
+            for s1, s2, p in self.weighted_edges():
+                self.view.edge(str(s1), str(s2), str(p))
+        else: 
+            for s1, s2 in self.edges():
+                self.view.edge(str(s1), str(s2))
             
     # -- about nodes positionning and resizing
     
@@ -430,6 +439,12 @@ class Graph:
             labels += NOLABEL * max(0, nodes_count - len(labels))
             for node_id in self.node_ids():
                 self.node_view(node_id).label = labels[node_id]
+                
+    def set_labels_fromId(self, labels, node_id):
+        """
+        Change one nodes label with the str labels parameter
+        """
+        self.node_view(node_id).label = labels
     
     def label_on(self):
         for node_id in self.node_ids():
@@ -550,6 +565,60 @@ class Graph:
         for node_id, color_id in dict_colors.items():
             self.node_view(node_id).color_id = color_id
         return len(set(dict_colors.values()))
+    
+    
+    # ----------------------- TEST ------------------- #
+    # ------------------------------------------------ #
+    
+    # ------------------- GRAPH -----------------#
+    def add_weighted_edge(self, s1, s2, p):
+        self.model.add_edge(s1, s2, weight=p)
+        self.view.edge(str(s1), str(s2), str(p))
+    
+    def add_weighted_edges_from(self, iterable=None):
+        for s in iterable:
+            self.add_weighted_edge(*s) 
+            
+    def predecessor(self, node_id):
+        for i in self.model[node_id]:
+            print( "Node_id : " )
+            print(self.model[node_id][i]['label'])
+            print( "=> weight" )
+            print(self.model[node_id][i]['weight']) #poids
+            
+    def neighbors_weight(self, node_id):
+        # Retourne la liste des "voisins & poids"
+        return str(self.model.adj[node_id])
+    
+    def is_weighted(self):
+        # Return true if the graph is ponderate
+        return nx.is_weighted(self.model)
+    
+    def get_node_attributes(self, node_id):
+        return nx.get_node_attributes(self.model,node_id)
+    
+    def printGraphInfo(self):
+        for node, info in self.model.adj.items():
+            for voisin, info_lien in info.items(): 
+                print(f"Lien [{node} et {voisin}] => poid {info_lien['weight']}")
+    
+    def weighted_edges(self):
+        listE = list()
+        res = list()
+        for node, info in self.model.adj.items():
+            for voisin, info_lien in info.items(): 
+                listE.append(node)
+                listE.append(voisin)
+                listE.append(info_lien['weight'])
+                res.append(listE)
+                listE = list()
+        return res
+                                           
+                
+    # ------------------- GRAPH -----------------#
+        
+    # ------------------------------------------------ #
+    # ----------------------- TEST ------------------- #
             
             
 class DiGraph(Graph):
@@ -583,9 +652,15 @@ class DiGraph(Graph):
         nodes_count = self.number_of_nodes()
         g = DiGraph(nodes_count, engine=self.engine)
         g.init_view()
-        g.add_edges_from(self.edges())
+        if self.is_weighted():
+            g.add_weighted_edges_from(self.weighted_edges())
+        else:
+            g.add_edges_from(self.edges())
         g.same_position_as(self)
         return g
+    
+    # ------------------------------------------------------------------------------- #
+    # ------------------------------------------------------------------------------- #
 
     def degree(self, node_id):
         return len(self.neighbors(node_id))
@@ -627,3 +702,5 @@ class BiPartite(Graph):
         g.add_edges_from(self.edges())
         g.same_position_as(self)
         return g
+
+
