@@ -586,9 +586,6 @@ class Graph:
             print( "=> weight" )
             print(self.model[node_id][i]['weight']) #poids
             
-    def neighbors_weight(self, node_id):
-        # Retourne la liste des "voisins & poids"
-        return str(self.model.adj[node_id])
     
     def is_weighted(self):
         # Return true if the graph is ponderate
