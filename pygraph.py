@@ -19,6 +19,7 @@ TODO
 import graphviz as gv
 import networkx as nx
 import random
+import string
 
 # ----------
 # CONSTANTES
@@ -46,9 +47,11 @@ PINK1 = 2
 LIGHTGREEN = 3
 IVORY2 = 4
 SIENNA1 = 5
+BLACK = 6
+
 
 # tuple of colors
-COLORS = 'lightblue', 'lemonchiffon', 'pink1', 'lightgreen', 'ivory2', 'sienna1', 'white'
+COLORS = 'lightblue', 'lemonchiffon', 'pink1', 'lightgreen', 'ivory2', 'sienna1', 'black', 'white'
 
 # -- about edges and nodes dimensions
 ARROWSIZE = '0.5'
@@ -138,8 +141,11 @@ class NodeView:
     
     # -- about labels
     
-    def label_on(self):
-        self.__gv.node(str(self.id), self.label)
+    def label_on(self, label = None):
+        if label == None:
+            self.__gv.node(str(self.id), self.label)
+        else:
+            self.__gv.node(str(self.id), label)
 
     def label_off(self):
         self.__gv.node(str(self.id), NOLABEL)
@@ -193,7 +199,82 @@ class NodeView:
         self.__gv.node(str(self.id), width=str(w), height=str(h))
 
     
+class EdgeView:
+    """
+    La classe EdgeView modélise les propriétés d'une arête pour sa visualisation. 
+    Cet objet est stocké comme information supplémentaire du modèle networkx
     
+    Parameters
+    ----------
+        gv : graphviz.Graph | graphviz.Digraph
+            la vue à laquelle cette vue noeud est rattachée
+    """
+
+    def __init__(self, gv, node_src, node_dst, weight = None, color_id=BLACK):        
+        self.__gv = gv
+        self.__edge = (node_src, node_dst)
+        self.__color_id = color_id
+        self.__weight = weight
+    
+    # Public attributes
+    
+    @property
+    def edge(self):
+        return self.__edge
+        
+    @property
+    def color_id(self):
+        return self.__color_id
+    
+    @color_id.setter
+    def color_id(self, color_id):
+        self.__color_id = min(max(-len(COLORS), color_id), len(COLORS)-1)
+
+    @property
+    def weight(self):
+        return self.__weight
+    
+    @weight.setter
+    def weight(self, weight):
+        if not isinstance(weight, str):
+            weight = str(self.weight)
+        self.__weight = weight
+    
+    @property
+    def gv(self):
+        return self.__gv
+   
+    
+    # View modification methods
+    
+    def create(self):
+        if not self.weight:
+            self.__gv.edge(str(self.edge[0]), str(self.edge[1]), style='filled', color=self.color())
+        else:
+            self.__gv.edge(str(self.edge[0]), str(self.edge[1]), str(self.weight), style='filled', color=self.color())
+        
+    
+    # -- about colors
+    
+    def color(self):
+        return COLORS[self.color_id]
+    
+    def color_on(self, color=None):
+        if isinstance(color, str):
+            color_str = color
+        elif isinstance(color, int):
+            try:
+                color_str = COLORS[color]
+            except:
+                color_str = COLORS[BLACK]
+        else:
+            color_str = self.color()
+        print(self.edge)
+        self.gv.edge(str(self.edge[0]), str(self.edge[1]), str(self.weight), style='filled', color=color_str)
+
+    def color_off(self):
+        self.__gv.edge(str(self.edge[0]), str(self.edge[1]), style='filled', color=COLORS[BLACK])
+        
             
 class Graph:
     """
@@ -288,7 +369,8 @@ class Graph:
     
     def add_edges_from(self, iterable=None):
         for s in iterable:
-            self.add_edge(*s)  
+            self.model.add_edges_from([(s[0],s[1], {'g':self, 'view':EdgeView(self.view, s[0],s[1])})])
+            self.edge_view(*s).create()
     
     # -- about removing elements
 
@@ -342,6 +424,9 @@ class Graph:
     def node_view(self, node_id):
         return self.model.nodes[node_id]['view']
     
+    def edge_view(self, node_src, node_dst):
+        return self.model.edges[node_src, node_dst]['view']
+    
     def init_view(self):
         self.init_nodes_view()
         self.init_edges_view()
@@ -361,12 +446,9 @@ class Graph:
 
 
     def init_edges_view(self):
-        if self.is_weighted():
-            for s1, s2, p in self.weighted_edges():
-                self.view.edge(str(s1), str(s2), str(p))
-        else: 
-            for s1, s2 in self.edges():
-                self.view.edge(str(s1), str(s2))
+        for s1, s2, p in self.weighted_edges():
+            self.model.edges[s1,s2]['view'] = EdgeView(self.view, s1,s2,p)
+            self.edge_view(s1, s2).create()
             
     # -- about nodes positionning and resizing
     
@@ -467,6 +549,18 @@ class Graph:
     def color_off(self):
         for node_id in self.node_ids():
             self.node_view(node_id).color_off()
+            
+    def color_on_edge(self, *args):
+        if len(args) == 3:
+            node_src, node_dst, color = args
+            self.edge_view(node_src, node_dst).color_on(color)
+        else:
+            for node_src, node_dst in self.edges():
+                self.edge_view(node_src, node_dst).color_on()
+
+    def color_off_edge(self):
+        for node_src, node_dst in self.edges():
+            self.edge_view(node_src, node_dst).color_off()
     
         
     # -- write graph view in file
@@ -571,17 +665,16 @@ class Graph:
     # ------------------------------------------------ #
     
     # ------------------- GRAPH -----------------#
-    def add_weighted_edge(self, s1, s2, p):
-        self.model.add_edge(s1, s2, weight=p)
-        self.view.edge(str(s1), str(s2), str(p))
+
     
     def add_weighted_edges_from(self, iterable=None):
         for s in iterable:
-            self.add_weighted_edge(*s) 
+            self.model.add_edges_from([(s[0],s[1], {'weight':s[2], 'g':self, 'view':EdgeView(self.view, s[0],s[1],s[2])})])
+            self.edge_view(s[0],s[1]).create()
+            
             
     def predecessor(self, node_id):
         for i in self.model[node_id]:
-            print( "Node_id : " )
             print(self.model[node_id][i]['label'])
             print( "=> weight" )
             print(self.model[node_id][i]['weight']) #poids
@@ -663,8 +756,11 @@ class DiGraph(Graph):
         return len(self.neighbors(node_id))
     
     def neighbors(self, node_id):
-        neigh = list(self.model.successors(node_id))
-        neigh.extend(self.model.predecessors(node_id))
+        if self.is_weighted:
+            neigh = self.model.neighbors(node_id)
+        else:
+            neigh = list(self.model.successors(node_id))
+            neigh.extend(self.model.predecessors(node_id))
         return neigh
 
         
