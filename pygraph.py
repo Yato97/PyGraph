@@ -221,13 +221,19 @@ class NodeView:
     
 class EdgeView:
     """
-    La classe EdgeView modélise les propriétés d'une arête pour sa visualisation. 
+    La classe EdgeView modélise les propriétés d'une arête ou d'un arc pour sa visualisation. 
     Cet objet est stocké comme information supplémentaire du modèle networkx
     
     Parameters
     ----------
         gv : graphviz.Graph | graphviz.Digraph
             la vue à laquelle cette vue noeud est rattachée
+        edge : 
+            couple de node_id identifiant l'arc/arête
+        color_id : int
+            un numéro de couleur (valeur par défaut -1)
+        weight : 
+            La dimension l'attribut shape circle qui est égale à la hauteur
     """
 
     def __init__(self, gv, node_src, node_dst, weight = None, color_id=BLACK):        
@@ -383,7 +389,7 @@ class Graph:
             self.model.add_nodes_from([(new_id, {'g':self, 'view':NodeView(self.view, new_id)})])
             self.node_view(new_id).create()
 
-    def add_edge(self, s1, s2):
+    def add_edge(self, s1, s2): # A revoir
         self.model.add_edge(s1, s2)
         self.view.edge(str(s1), str(s2))
     
@@ -391,6 +397,11 @@ class Graph:
         for s in iterable:
             self.model.add_edges_from([(s[0],s[1], {'g':self, 'view':EdgeView(self.view, s[0],s[1])})])
             self.edge_view(*s).create()
+            
+    def add_weighted_edges_from(self, iterable=None):
+        for s in iterable:
+            self.model.add_edges_from([(s[0],s[1], {'weight':s[2], 'g':self, 'view':EdgeView(self.view, s[0],s[1],s[2])})])
+            self.edge_view(s[0],s[1]).create()
     
     # -- about removing elements
 
@@ -587,6 +598,31 @@ class Graph:
     def color_off_edge(self):
         for node_src, node_dst in self.edges():
             self.edge_view(node_src, node_dst).color_off()
+            
+    # -- about attibutes
+    def is_weighted(self):
+        # Return true if the graph is ponderate
+        return nx.is_weighted(self.model)
+    
+    def get_node_attributes(self, node_id):
+        return nx.get_node_attributes(self.model,node_id)
+    
+    def printGraphInfo(self):
+        for node, info in self.model.adj.items():
+            for voisin, info_lien in info.items(): 
+                print(f"Lien [{node} et {voisin}] => poid {info_lien['weight']}")
+    
+    def weighted_edges(self):
+        listE = list()
+        res = list()
+        for node, info in self.model.adj.items():
+            for voisin, info_lien in info.items(): 
+                listE.append(node)
+                listE.append(voisin)
+                listE.append(info_lien['weight'])
+                res.append(listE)
+                listE = list()
+        return res         
     
         
     # -- write graph view in file
@@ -685,57 +721,6 @@ class Graph:
         for node_id, color_id in dict_colors.items():
             self.node_view(node_id).color_id = color_id
         return len(set(dict_colors.values()))
-    
-    
-    # ----------------------- TEST ------------------- #
-    # ------------------------------------------------ #
-    
-    # ------------------- GRAPH -----------------#
-
-    
-    def add_weighted_edges_from(self, iterable=None):
-        for s in iterable:
-            self.model.add_edges_from([(s[0],s[1], {'weight':s[2], 'g':self, 'view':EdgeView(self.view, s[0],s[1],s[2])})])
-            self.edge_view(s[0],s[1]).create()
-            
-            
-    def predecessor(self, node_id):
-        for i in self.model[node_id]:
-            print(self.model[node_id][i]['label'])
-            print( "=> weight" )
-            print(self.model[node_id][i]['weight']) #poids
-            
-    
-    def is_weighted(self):
-        # Return true if the graph is ponderate
-        return nx.is_weighted(self.model)
-    
-    def get_node_attributes(self, node_id):
-        return nx.get_node_attributes(self.model,node_id)
-    
-    def printGraphInfo(self):
-        for node, info in self.model.adj.items():
-            for voisin, info_lien in info.items(): 
-                print(f"Lien [{node} et {voisin}] => poid {info_lien['weight']}")
-    
-    def weighted_edges(self):
-        listE = list()
-        res = list()
-        for node, info in self.model.adj.items():
-            for voisin, info_lien in info.items(): 
-                listE.append(node)
-                listE.append(voisin)
-                listE.append(info_lien['weight'])
-                res.append(listE)
-                listE = list()
-        return res
-                                           
-                
-    # ------------------- GRAPH -----------------#
-        
-    # ------------------------------------------------ #
-    # ----------------------- TEST ------------------- #
-            
             
 class DiGraph(Graph):
     """
@@ -774,9 +759,6 @@ class DiGraph(Graph):
             g.add_edges_from(self.edges())
         g.same_position_as(self)
         return g
-    
-    # ------------------------------------------------------------------------------- #
-    # ------------------------------------------------------------------------------- #
 
     def degree(self, node_id):
         return len(self.neighbors(node_id))
@@ -821,6 +803,5 @@ class BiPartite(Graph):
         g.add_edges_from(self.edges())
         g.same_position_as(self)
         return g
-
 
 
