@@ -667,9 +667,17 @@ class Graph:
                 a_traiter.append(voisins_a_traiter)
         return voisins
 
-    # -- DFS : Depth-First Search (parcours en profondeur)
+    # -- DFS : Depth-First Search (parcours en profondeur) 
 
-    # todo
+    def dfs(self, node_id, voisin = set(), res = list()):
+        self.res = res
+        self.voisin = voisin
+        if node_id not in self.voisin:
+            self.res.append(node_id)
+            self.voisin.add(node_id)
+            for i in list(self.neighbors(node_id)):
+                self.dfs(i, self.voisin, self.res)
+        return self.res
 
     # -- about graph coloration
     
