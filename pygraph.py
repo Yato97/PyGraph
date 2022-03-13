@@ -20,6 +20,7 @@ import graphviz as gv
 import networkx as nx
 import random
 import string
+
 # ----------
 # CONSTANTES
 
@@ -60,6 +61,7 @@ NODE_HEIGHT = '0.3'
 SMALL_NODE_WIDTH = '0.1'
 SMALL_NODE_HEIGHT = '0.1'
 
+
 # -----------
 # LES CLASSES
 
@@ -85,7 +87,6 @@ class NodeView:
         self.__pos = None
         self.__label = str(node_id)
         self.__ech = 1
-        self.__width = NODE_WIDTH
     
     # Public attributes
     
@@ -108,14 +109,6 @@ class NodeView:
     @pos.setter
     def pos(self, pos):
         self.__pos = pos
-        
-    @property
-    def width(self):
-        return self.__width
-    
-    @width.setter
-    def width(self, width):
-        self.__width = width
 
     @property
     def ech(self):
@@ -157,15 +150,6 @@ class NodeView:
     def label_off(self):
         self.__gv.node(str(self.id), NOLABEL)
         
-    def label_on_side(self, label = None):
-        if label == None:
-            self.__gv.node(str(self.id), xlabel=self.label)
-        else:
-            self.__gv.node(str(self.id), xlabel=label)
-
-    def label_off_side(self):
-        self.__gv.node(str(self.id), xlabel=NOLABEL)
-        
     
     # -- about colors
     
@@ -204,36 +188,26 @@ class NodeView:
             x, y = self.pos
             pos = f'{x*ech},{y*ech}!'
             self.__gv.node(str(self.id), pos=pos)
-            
         
     def size(self, *dim):
         if len(dim) == 0:
             w, h = NODE_WIDTH, NODE_HEIGHT
-            self.width = NODE_WIDTH
         elif len(dim) == 1:
             w, h = dim[0], dim[0]
-            self.width = dim[0]
         else:
             w, h = dim
-            width = dim[0]
         self.__gv.node(str(self.id), width=str(w), height=str(h))
 
     
 class EdgeView:
     """
-    La classe EdgeView modélise les propriétés d'une arête ou d'un arc pour sa visualisation. 
+    La classe EdgeView modélise les propriétés d'une arête pour sa visualisation. 
     Cet objet est stocké comme information supplémentaire du modèle networkx
     
     Parameters
     ----------
         gv : graphviz.Graph | graphviz.Digraph
             la vue à laquelle cette vue noeud est rattachée
-        edge : 
-            couple de node_id identifiant l'arc/arête
-        color_id : int
-            un numéro de couleur (valeur par défaut -1)
-        weight : 
-            La dimension l'attribut shape circle qui est égale à la hauteur
     """
 
     def __init__(self, gv, node_src, node_dst, weight = None, color_id=BLACK):        
@@ -241,7 +215,7 @@ class EdgeView:
         self.__edge = (node_src, node_dst)
         self.__color_id = color_id
         self.__weight = weight
-        
+    
     # Public attributes
     
     @property
@@ -295,6 +269,7 @@ class EdgeView:
                 color_str = COLORS[BLACK]
         else:
             color_str = self.color()
+        print(self.edge)
         self.gv.edge(str(self.edge[0]), str(self.edge[1]), str(self.weight), style='filled', color=color_str)
 
     def color_off(self):
@@ -323,7 +298,7 @@ class Graph:
         des graphes orientés et des graphes bi-partie
     """
         
-    def __init__(self, nodes_count=0, random=False, directed=False, bipartite=False, n1=0, n2=0, engine='neato', strict=False):
+    def __init__(self, nodes_count=0, random=False, directed=False, bipartite=False, n1=0, n2=0, engine='neato'):
         if random:
             self.__model = nx.erdos_renyi_graph(nodes_count, 0.5)
         elif directed:
@@ -333,13 +308,12 @@ class Graph:
         else:
             self.__model = nx.Graph()
         if directed:
-            self.__view = gv.Digraph(engine=engine, strict=strict, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+            self.__view = gv.Digraph(engine=engine, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         else:
-            self.__view = gv.Graph(engine=engine, strict=strict, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+            self.__view = gv.Graph(engine=engine, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         self.__engine = engine
         self.__model.add_nodes_from([node_id, {'view': None}] for node_id in range(nodes_count))
         self.init_view()
-        
     
     @property
     def model(self):
@@ -389,7 +363,7 @@ class Graph:
             self.model.add_nodes_from([(new_id, {'g':self, 'view':NodeView(self.view, new_id)})])
             self.node_view(new_id).create()
 
-    def add_edge(self, s1, s2): # A revoir
+    def add_edge(self, s1, s2):
         self.model.add_edge(s1, s2)
         self.view.edge(str(s1), str(s2))
     
@@ -397,11 +371,6 @@ class Graph:
         for s in iterable:
             self.model.add_edges_from([(s[0],s[1], {'g':self, 'view':EdgeView(self.view, s[0],s[1])})])
             self.edge_view(*s).create()
-            
-    def add_weighted_edges_from(self, iterable=None):
-        for s in iterable:
-            self.model.add_edges_from([(s[0],s[1], {'weight':s[2], 'g':self, 'view':EdgeView(self.view, s[0],s[1],s[2])})])
-            self.edge_view(s[0],s[1]).create()
     
     # -- about removing elements
 
@@ -463,10 +432,10 @@ class Graph:
         self.init_edges_view()
         self.view_is_up_to_date = True
         
-    def reset_view(self, engine=None, strict=False):
+    def reset_view(self, engine=None):
         engine = self.engine if engine is None else engine
         d_position = self.export_position()
-        self.__view = gv.Graph(engine=engine, format='svg', strict=strict, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+        self.__view = gv.Graph(engine=engine, format='svg', node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         self.init_view()
         self.import_position(d_position)
         
@@ -521,20 +490,8 @@ class Graph:
         if node_id is None:
             for node_id in self.node_ids():
                 self.node_view(node_id).size(*dim)
-                if float(self.node_view(node_id).width) < 0.25:
-                    self.node_view(node_id).label_off()
-                    self.node_view(node_id).label_on_side(self.node_view(node_id).label)
-                else:
-                    self.node_view(node_id).label_on(self.node_view(node_id).label)
-                    self.node_view(node_id).label_off_side()
         else:
-            self.node_view(node_id).size(*dim)
-            if float(self.node_view(node_id).width) < 0.25:
-                self.node_view(node_id).label_off()
-                self.node_view(node_id).label_on_side(self.node_view(node_id).label)
-            else:
-                self.node_view(node_id).label_on(self.node_view(node_id).label)
-                self.node_view(node_id).label_off_side()
+                self.node_view(node_id).size(*dim)
             
     def export_position(self):
         lnodes = list(self.node_ids())
@@ -564,6 +521,12 @@ class Graph:
             labels += NOLABEL * max(0, nodes_count - len(labels))
             for node_id in self.node_ids():
                 self.node_view(node_id).label = labels[node_id]
+                
+    def set_labels_fromId(self, labels, node_id):
+        """
+        Change one nodes label with the str labels parameter
+        """
+        self.node_view(node_id).label = labels
     
     def label_on(self):
         for node_id in self.node_ids():
@@ -598,31 +561,6 @@ class Graph:
     def color_off_edge(self):
         for node_src, node_dst in self.edges():
             self.edge_view(node_src, node_dst).color_off()
-            
-    # -- about attibutes
-    def is_weighted(self):
-        # Return true if the graph is ponderate
-        return nx.is_weighted(self.model)
-    
-    def get_node_attributes(self, node_id):
-        return nx.get_node_attributes(self.model,node_id)
-    
-    def printGraphInfo(self):
-        for node, info in self.model.adj.items():
-            for voisin, info_lien in info.items(): 
-                print(f"Lien [{node} et {voisin}] => poid {info_lien['weight']}")
-    
-    def weighted_edges(self):
-        listE = list()
-        res = list()
-        for node, info in self.model.adj.items():
-            for voisin, info_lien in info.items(): 
-                listE.append(node)
-                listE.append(voisin)
-                listE.append(info_lien['weight'])
-                res.append(listE)
-                listE = list()
-        return res         
     
         
     # -- write graph view in file
@@ -729,6 +667,57 @@ class Graph:
         for node_id, color_id in dict_colors.items():
             self.node_view(node_id).color_id = color_id
         return len(set(dict_colors.values()))
+    
+    
+    # ----------------------- TEST ------------------- #
+    # ------------------------------------------------ #
+    
+    # ------------------- GRAPH -----------------#
+
+    
+    def add_weighted_edges_from(self, iterable=None):
+        for s in iterable:
+            self.model.add_edges_from([(s[0],s[1], {'weight':s[2], 'g':self, 'view':EdgeView(self.view, s[0],s[1],s[2])})])
+            self.edge_view(s[0],s[1]).create()
+            
+            
+    def predecessor(self, node_id):
+        for i in self.model[node_id]:
+            print(self.model[node_id][i]['label'])
+            print( "=> weight" )
+            print(self.model[node_id][i]['weight']) #poids
+            
+    
+    def is_weighted(self):
+        # Return true if the graph is ponderate
+        return nx.is_weighted(self.model)
+    
+    def get_node_attributes(self, node_id):
+        return nx.get_node_attributes(self.model,node_id)
+    
+    def printGraphInfo(self):
+        for node, info in self.model.adj.items():
+            for voisin, info_lien in info.items(): 
+                print(f"Lien [{node} et {voisin}] => poid {info_lien['weight']}")
+    
+    def weighted_edges(self):
+        listE = list()
+        res = list()
+        for node, info in self.model.adj.items():
+            for voisin, info_lien in info.items(): 
+                listE.append(node)
+                listE.append(voisin)
+                listE.append(info_lien['weight'])
+                res.append(listE)
+                listE = list()
+        return res
+                                           
+                
+    # ------------------- GRAPH -----------------#
+        
+    # ------------------------------------------------ #
+    # ----------------------- TEST ------------------- #
+            
             
 class DiGraph(Graph):
     """
@@ -747,13 +736,13 @@ class DiGraph(Graph):
     """
 
     
-    def __init__(self, nodes_count=0, engine='neato', strict=False):
-        Graph.__init__(self, nodes_count, random=False, directed=True, strict=strict, engine=engine)
+    def __init__(self, nodes_count=0, engine='neato'):
+        Graph.__init__(self, nodes_count, random=False, directed=True, engine=engine)
         
-    def reset_view(self, engine=None, strict=False):
+    def reset_view(self, engine=None):
         engine = self.engine if engine is None else engine
         d_position = self.export_position()
-        self.view = gv.Digraph(engine=engine, strict=strict, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+        self.view = gv.Digraph(engine=engine, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         self.init_view()
         self.import_position(d_position)
 
@@ -767,6 +756,9 @@ class DiGraph(Graph):
             g.add_edges_from(self.edges())
         g.same_position_as(self)
         return g
+    
+    # ------------------------------------------------------------------------------- #
+    # ------------------------------------------------------------------------------- #
 
     def degree(self, node_id):
         return len(self.neighbors(node_id))
