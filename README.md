@@ -27,6 +27,7 @@ L'idée de ce module `pygraph` est de créer un objet `Graph` (ou `DiGraph` ou `
 ```python
 Graph(n)                # un graphe non orienté à n sommets
 Graph(n, random=True)   # aléatoire à n sommets
+Graph(n, strict=True) # arêtes , arcs  le rendu doit fusionner plusieurs arêtes.
 DiGraph(n)              # graphe orienté à n sommets il faut mettre les arcs à la main
 BiPartite(n, m)         # graphe bi-partie complet nxm, on pourra supprimer des arètes
 g.copy()                # crée une copie du graphe g
@@ -42,7 +43,7 @@ g.neighbors(s)         # un itérateur sur les voisins du sommet s
 ```python
 g.add_nodes(k)         # ajoute k sommets identifiés n, n+1, ... n+k-1 
                        # où n était le nombre de sommets initial, k = 1 par défaut
-g.add_edge(s1, s2)     # ajoute un lien du sommet s1 vers le sommet s2
+g.add_edge(self, s1, s2, weight=None)   # ajoute un lien du sommet s1 vers le sommet s2, possibilité d'ajouter le poids weight
 g_add_edges_from(iterable) # ajoute les liens depuis les couples de l'itérable
 ```
 
@@ -63,7 +64,7 @@ label
 pos
 ```
 
-### Changer les couleurs
+### Changer les couleurs des sommets
 ```python
 g.color_on(s, name)      # colorise provisoirement le sommet s avec la couleur name 
 g.color_on()             # affiche les couleurs de tous les sommets
@@ -73,6 +74,11 @@ g.color_on(s, num)       # attribue la couleur numéro num au sommet s équivale
     g.color_on()
 g.colorise()             # applique l'algo DSATUR pour colorier le graphe faire un color_on() ensuite
 g.greedy_color(strategy) # applique la fonction du module networkx de coloration, il faut préciser la stratégie
+```
+
+### Changer les couleurs des arêtes , arcs
+```python
+
 ```
 
 ### Changer les étiquettes (par défaut = identifiant du sommet)
@@ -100,4 +106,20 @@ g.resize() # redonne la valeur initiale de 0.3 (inch) aux dimensions des sommets
 ### Sauver dans un fichier
 ```python
 g.write(filename='output', format='svg') # création d'un fichier <filename>.<fmt> contenant le dessin du graphe et de <filename> pour le source graphviz du graphe
+```
+
+### Charger un fichier
+```python
+g.load_json(self, filename, encoding='utf-8') # Ajoute a un graphe les informations contenues dans le fichier json filename 
+```
+
+## Algorithmes 
+
+### Dijkstra
+```python
+Dijkstra(graph, start=0, end=None) # Objet dijkstra qui prend un graphe et les nœuds de départ -> arrivé en arguments 
+                                   # Possède les méthodes permettant de résoudre le problème du plus cour chemin, étape par étape ou non.
+d.solve()                          # Lance la résolution du plus court chemin 
+d.next()                           # Lance la prochaine étape dans la résolution du plus cour chemin         
+s.reset_dijkstra()                 # Réinitialise dijkstra
 ```
