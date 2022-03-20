@@ -19,7 +19,7 @@ L'idée de ce module `pygraph` est de créer un objet `Graph` (ou `DiGraph` ou `
 - Redimensionner le graphe
 - Sauver le dessin du graphe dans un fichier aux formats usuels (svg, png, jpg, pdf etc.)
 - Lancer des algorithmes usuels tel que la colorisation, la recherche du plus court chemin etc.
-![graphviz notebook](examples/dijkstra.png)
+![graphviz notebook](examples/dijkstra.sv)
 
 ## En détail
 
