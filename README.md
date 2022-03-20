@@ -103,7 +103,7 @@ g.resize() # redonne la valeur initiale de 0.3 (inch) aux dimensions des sommets
 g.write(filename='output', format='svg', view = True) # création d'un fichier <filename>.<fmt> contenant le dessin du graphe et de <filename> pour le source graphviz du graphe
 ```
 
-### Charger un fichier
+### Charger & sauvegarder un graphe
 ```python
 g.load_json(self, filename, encoding='utf-8') # Ajoute a un graphe les informations contenues dans le fichier json filename 
 g.save_json(filename, encoding='utf-8') # Exporte un graphe et ses informations au format json
