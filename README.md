@@ -76,11 +76,6 @@ g.colorise()             # applique l'algo DSATUR pour colorier le graphe faire 
 g.greedy_color(strategy) # applique la fonction du module networkx de coloration, il faut préciser la stratégie
 ```
 
-### Changer les couleurs des arêtes , arcs
-```python
-
-```
-
 ### Changer les étiquettes (par défaut = identifiant du sommet)
 ```python
 g.set_labels(chaine)    # chaine doit être une chaîne de caractères de la longueur nombre de sommets
@@ -105,21 +100,23 @@ g.resize() # redonne la valeur initiale de 0.3 (inch) aux dimensions des sommets
 
 ### Sauver dans un fichier
 ```python
-g.write(filename='output', format='svg') # création d'un fichier <filename>.<fmt> contenant le dessin du graphe et de <filename> pour le source graphviz du graphe
+g.write(filename='output', format='svg', view = True) # création d'un fichier <filename>.<fmt> contenant le dessin du graphe et de <filename> pour le source graphviz du graphe
 ```
 
 ### Charger un fichier
 ```python
 g.load_json(self, filename, encoding='utf-8') # Ajoute a un graphe les informations contenues dans le fichier json filename 
+g.save_json(filename, encoding='utf-8') # Exporte un graphe et ses informations au format json
 ```
 
 ## Algorithmes 
 
 ### Dijkstra
 ```python
-Dijkstra(graph, start=0, end=None) # Objet dijkstra qui prend un graphe et les nœuds de départ -> arrivé en arguments 
+Dijkstra(graph, start=0, end=None, inside=True) # Objet dijkstra qui prend un graphe et les nœuds de départ -> arrivé en arguments, possibilité de changer l'affichage des labels a l'intérieure ou a l'extérieure des nœuds avec l'argument inside
                                    # Possède les méthodes permettant de résoudre le problème du plus cour chemin, étape par étape ou non.
 d.solve()                          # Lance la résolution du plus court chemin 
-d.next()                           # Lance la prochaine étape dans la résolution du plus cour chemin         
+d.next()                           # Lance la prochaine étape dans la résolution du plus cour chemin   
+d.diaporama(filename="index")      # Permet d'exporter la résolution du plus court chemin étape par étape dans un diaporama en html
 s.reset_dijkstra()                 # Réinitialise dijkstra
 ```

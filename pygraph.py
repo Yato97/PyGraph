@@ -16,50 +16,22 @@ TODO
     - traiter des graphes valués
 """
 
+import imp
 import graphviz as gv
 import networkx as nx
 import random
-import string
+import json
+import io
+from constantes import *
+
+
 
 # ----------
 # CONSTANTES
 
 # -- about shape and label
 #
-CIRCLE = 'circle'
-SQUARE = 'square'
-NOLABEL = ''
-
-# Revoir plus tard le coup des emoji comme label
-ANIMALS = ''.join([chr(n) for n in range(0x1f400,0x1f440)])
-PEOPLE1 = ''.join([chr(n) for n in range(0x1f9d1, 0x1f9d5)]) 
-PEOPLE2 = ''.join([chr(n) for n in range(0x1f466, 0x1f46a)])
-PEOPLE3 = ''.join([chr(n) for n in range(0x1f474, 0x1f477)])
-PEOPLE4 = chr(0x1f471)
-
-# -- about colors
-
-# color_id
-WHITE = -1
-LIGHTBLUE = 0
-LEMONCHIFFON = 1
-PINK1 = 2
-LIGHTGREEN = 3
-IVORY2 = 4
-SIENNA1 = 5
-BLACK = 6
-
-
-# tuple of colors
-COLORS = 'lightblue', 'lemonchiffon', 'pink1', 'lightgreen', 'ivory2', 'sienna1', 'black', 'white'
-
-# -- about edges and nodes dimensions
-ARROWSIZE = '0.5'
-NODE_MARGIN = '0.02'
-NODE_WIDTH = '0.3'
-NODE_HEIGHT = '0.3'
-SMALL_NODE_WIDTH = '0.1'
-SMALL_NODE_HEIGHT = '0.1'
+from constantes import *
 
 
 # -----------
@@ -80,13 +52,15 @@ class NodeView:
             un numéro de couleur (valeur par défaut -1)
     """
 
-    def __init__(self, gv, node_id, color_id=WHITE):        
+    def __init__(self, gv, node_id, color_id=WHITE, fontsize=FONTSIZE):        
         self.__gv = gv
         self.__id = node_id 
         self.__color_id = color_id
         self.__pos = None
         self.__label = str(node_id)
         self.__ech = 1
+        self.__width = NODE_WIDTH
+        self.__fontsize = fontsize
     
     # Public attributes
     
@@ -109,6 +83,14 @@ class NodeView:
     @pos.setter
     def pos(self, pos):
         self.__pos = pos
+        
+    @property
+    def width(self):
+        return self.__width
+    
+    @width.setter
+    def width(self, width):
+        self.__width = width
 
     @property
     def ech(self):
@@ -132,23 +114,43 @@ class NodeView:
     def gv(self):
         return self.__gv
    
+    @property
+    def fontsize(self):
+        return self.__fontsize
+
     
     # View modification methods
     
     def create(self):
-        self.__gv.node(str(self.id), self.label, shape=CIRCLE, style='filled', fillcolor=self.color(), width=NODE_WIDTH, height=NODE_HEIGHT)
+        self.__gv.node(str(self.id), self.label, shape=CIRCLE, style='filled', fillcolor=self.color(), width=NODE_WIDTH, height=NODE_HEIGHT, fontsize=self.fontsize)
     
     
     # -- about labels
     
-    def label_on(self, label = None):
+    def label_on(self, label = None, color=COLORS[BLACK]):
         if label == None:
-            self.__gv.node(str(self.id), self.label)
+            self.__gv.node(str(self.id), self.label, fontcolor=color, fontsize=FONTSIZE)
         else:
-            self.__gv.node(str(self.id), label)
+            if len(label) <= 2:
+                self.__gv.node(str(self.id), label, fontcolor=color, fontsize=FONTSIZE)
+            elif len(label) > 2 and len(label) <= 5:
+                self.__gv.node(str(self.id), label, fontcolor=color, fontsize=REDUCE_FONTSIZE)
+            else:
+                self.__gv.node(str(self.id), xlabel=label, fontcolor=color, fontsize=FONTSIZE)
+                
+                
 
     def label_off(self):
         self.__gv.node(str(self.id), NOLABEL)
+        
+    def label_on_side(self, label=None, color=COLORS[BLACK]):
+        if label == None:
+            self.__gv.node(str(self.id), xlabel=self.label, fontcolor=color)
+        else:
+            self.__gv.node(str(self.id), xlabel=label, fontcolor=color)
+
+    def label_off_side(self):
+        self.__gv.node(str(self.id), xlabel=NOLABEL)
         
     
     # -- about colors
@@ -188,34 +190,45 @@ class NodeView:
             x, y = self.pos
             pos = f'{x*ech},{y*ech}!'
             self.__gv.node(str(self.id), pos=pos)
+            
         
     def size(self, *dim):
         if len(dim) == 0:
             w, h = NODE_WIDTH, NODE_HEIGHT
+            self.width = NODE_WIDTH
         elif len(dim) == 1:
             w, h = dim[0], dim[0]
+            self.width = dim[0]
         else:
             w, h = dim
+            width = dim[0]
         self.__gv.node(str(self.id), width=str(w), height=str(h))
+
 
     
 class EdgeView:
     """
-    La classe EdgeView modélise les propriétés d'une arête pour sa visualisation. 
+    La classe EdgeView modélise les propriétés d'une arête ou d'un arc pour sa visualisation. 
     Cet objet est stocké comme information supplémentaire du modèle networkx
     
     Parameters
     ----------
         gv : graphviz.Graph | graphviz.Digraph
             la vue à laquelle cette vue noeud est rattachée
+        edge : 
+            couple de node_id identifiant l'arc/arête
+        color_id : int
+            un numéro de couleur (valeur par défaut -1)
+        weight : 
+            La dimension l'attribut shape circle qui est égale à la hauteur
     """
 
-    def __init__(self, gv, node_src, node_dst, weight = None, color_id=BLACK):        
+    def __init__(self, gv, node_src, node_dst, weight=None, color_id=BLACK):        
         self.__gv = gv
         self.__edge = (node_src, node_dst)
         self.__color_id = color_id
         self.__weight = weight
-    
+        
     # Public attributes
     
     @property
@@ -269,7 +282,6 @@ class EdgeView:
                 color_str = COLORS[BLACK]
         else:
             color_str = self.color()
-        print(self.edge)
         self.gv.edge(str(self.edge[0]), str(self.edge[1]), str(self.weight), style='filled', color=color_str)
 
     def color_off(self):
@@ -298,7 +310,7 @@ class Graph:
         des graphes orientés et des graphes bi-partie
     """
         
-    def __init__(self, nodes_count=0, random=False, directed=False, bipartite=False, n1=0, n2=0, engine='neato'):
+    def __init__(self, nodes_count=0, random=False, directed=False, bipartite=False, n1=0, n2=0, engine='neato', strict=False):
         if random:
             self.__model = nx.erdos_renyi_graph(nodes_count, 0.5)
         elif directed:
@@ -308,12 +320,13 @@ class Graph:
         else:
             self.__model = nx.Graph()
         if directed:
-            self.__view = gv.Digraph(engine=engine, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+            self.__view = gv.Digraph(engine=engine, strict=strict, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         else:
-            self.__view = gv.Graph(engine=engine, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+            self.__view = gv.Graph(engine=engine, strict=strict, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         self.__engine = engine
         self.__model.add_nodes_from([node_id, {'view': None}] for node_id in range(nodes_count))
         self.init_view()
+        
     
     @property
     def model(self):
@@ -349,28 +362,31 @@ class Graph:
     def edges(self):
         return self.model.edges
     
+    def edge_informations(self, s1, s2):
+        return self.model.adj[s1][s2]
+    
     def number_of_nodes(self):
         return self.model.number_of_nodes()
 
     def number_of_edges(self):
         return self.model.number_of_edges()
-    
+        
     # -- about adding elements
     
     def add_nodes(self, nodes_count=1):
-        first = max(self.node_ids()) + 1
+        first = 0 if self.number_of_nodes() == 0 else max(self.node_ids()) + 1
         for new_id in range(first, first+nodes_count):
-            self.model.add_nodes_from([(new_id, {'g':self, 'view':NodeView(self.view, new_id)})])
+            self.model.add_nodes_from([(new_id, {'g':self, 'view': NodeView(self.view, new_id)})])
             self.node_view(new_id).create()
 
-    def add_edge(self, s1, s2):
-        self.model.add_edge(s1, s2)
-        self.view.edge(str(s1), str(s2))
+    def add_edge(self, s1, s2, weight=None):
+        self.model.add_edge(s1, s2, weight=weight, view=EdgeView(self.view, s1, s2, weight))
+        self.edge_view(s1, s2).create()
     
     def add_edges_from(self, iterable=None):
         for s in iterable:
-            self.model.add_edges_from([(s[0],s[1], {'g':self, 'view':EdgeView(self.view, s[0],s[1])})])
-            self.edge_view(*s).create()
+            s1, s2, *args = s
+            self.add_edge(s1, s2, *args)
     
     # -- about removing elements
 
@@ -402,15 +418,45 @@ class Graph:
     def copy(self):
         nodes_count = self.number_of_nodes()
         g = Graph(nodes_count, engine=self.engine)
-        #g.init_view()
-        if self.is_weighted():
-            g.add_weighted_edges_from(self.weighted_edges())
-        else:
-            g.add_edges_from(self.edges())
-            
+        g.add_edges_from(self.edges())    
         g.same_position_as(self)
         return g
 
+    # -- load a complete json file graph description
+    def load_json(self, filename, encoding='utf-8'):
+        with open(filename, 'r', encoding=encoding) as jsonfile:
+            properties = json.load(jsonfile)
+        if 'nodes'  in properties:
+            self.add_nodes(properties['nodes'])
+        if 'edges' in properties:
+            self.add_edges_from(properties['edges'])
+        if 'labels' in properties:
+            self.set_labels(properties['labels'])
+            self.label_on()
+        if 'position' in properties:
+            self.position(properties['position'])
+        if 'scale' in properties:
+            self.scale(properties['scale'])
+
+    # -- save a complete json file from graph
+    def save_json(self, filename, encoding='utf-8'):
+        try:
+            to_unicode = unicode
+        except NameError:
+            to_unicode = str
+        nodes, edges, positions, labels, ech = self.export_properties_json()
+        data = {
+        'nodes': nodes,
+        'edges': edges,
+        'labels' : labels,
+        'position' : positions,
+        'scale' : ech 
+        }
+        with io.open(filename, 'w', encoding='utf8') as outfile:
+            str_ = json.dumps(data,
+                            indent=4, sort_keys=True, ensure_ascii=False)
+            outfile.write(to_unicode(str_))
+                
     # -- other informations usefull for a lot of graphs algorithms
     
     def degree(self, node_id):
@@ -418,6 +464,7 @@ class Graph:
     
     def neighbors(self, node_id):
         return self.model.neighbors(node_id)
+    
     
     # VIEW METHODS
     
@@ -432,10 +479,10 @@ class Graph:
         self.init_edges_view()
         self.view_is_up_to_date = True
         
-    def reset_view(self, engine=None):
+    def reset_view(self, engine=None, strict=False):
         engine = self.engine if engine is None else engine
         d_position = self.export_position()
-        self.__view = gv.Graph(engine=engine, format='svg', node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+        self.__view = gv.Graph(engine=engine, format='svg', strict=strict, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         self.init_view()
         self.import_position(d_position)
         
@@ -444,11 +491,14 @@ class Graph:
             self.model.nodes[node_id]['view'] = NodeView(self.view, node_id)
             self.node_view(node_id).create()
 
-
     def init_edges_view(self):
-        for s1, s2, p in self.weighted_edges():
-            self.model.edges[s1,s2]['view'] = EdgeView(self.view, s1,s2,p)
-            self.edge_view(s1, s2).create()
+        for s1, s2 in self.edges():
+            information = self.edge_informations(s1, s2)
+            weight = information.get('weight', None)
+            if s2 > s1:
+                self.model.edges[s1, s2]['weight'] = weight
+                self.model.edges[s1, s2]['view'] = EdgeView(self.view, s1, s2, weight)
+                self.edge_view(s1, s2).create()
             
     # -- about nodes positionning and resizing
     
@@ -490,14 +540,52 @@ class Graph:
         if node_id is None:
             for node_id in self.node_ids():
                 self.node_view(node_id).size(*dim)
+                if float(self.node_view(node_id).width) < 0.25:
+                    self.node_view(node_id).label_off()
+                    self.node_view(node_id).label_on_side(self.node_view(node_id).label)
+                else:
+                    self.node_view(node_id).label_on(self.node_view(node_id).label)
+                    self.node_view(node_id).label_off_side()
         else:
-                self.node_view(node_id).size(*dim)
+            self.node_view(node_id).size(*dim)
+            if float(self.node_view(node_id).width) < 0.25:
+                self.node_view(node_id).label_off()
+                self.node_view(node_id).label_on_side(self.node_view(node_id).label)
+            else:
+                self.node_view(node_id).label_on(self.node_view(node_id).label)
+                self.node_view(node_id).label_off_side()
             
     def export_position(self):
         lnodes = list(self.node_ids())
         d = {node_id:self.node_view(node_id).pos for node_id in self.node_ids()}
         d['ech'] = self.node_view(lnodes[0]).ech if lnodes else 1
         return d
+    
+    def export_properties_json(self):
+        lnodes = list(self.node_ids())
+        # Nodes 
+        nodes = len(list(self.node_ids()))
+        # Edges
+        edges = []
+        for i in DG1.graph.edges():
+            edges.append(list((i[0],i[1],DG1.graph.edge_informations(i[0],i[1]).get('weight'))))
+        d = {node_id:self.node_view(node_id).pos for node_id in self.node_ids()}
+        # Positions 
+        positions = []
+        for node_id in self.node_ids():
+            temp = []
+            temp.append(node_id)
+            temp.append(self.node_view(node_id).pos[0])
+            temp.append(self.node_view(node_id).pos[1])
+            positions.append(temp)
+        # Labels
+        labels = ""
+        for node_id in self.node_ids():
+            labels = labels + (self.node_view(node_id).label)
+        labels
+        # Scale
+        ech = self.node_view(lnodes[0]).ech if lnodes else 1
+        return nodes, edges, positions, labels, ech
 
     def import_position(self, d_position):
         ech = d_position['ech']
@@ -521,12 +609,6 @@ class Graph:
             labels += NOLABEL * max(0, nodes_count - len(labels))
             for node_id in self.node_ids():
                 self.node_view(node_id).label = labels[node_id]
-                
-    def set_labels_fromId(self, labels, node_id):
-        """
-        Change one nodes label with the str labels parameter
-        """
-        self.node_view(node_id).label = labels
     
     def label_on(self):
         for node_id in self.node_ids():
@@ -561,164 +643,27 @@ class Graph:
     def color_off_edge(self):
         for node_src, node_dst in self.edges():
             self.edge_view(node_src, node_dst).color_off()
-    
-        
-    # -- write graph view in file
-    
-    def write(self, filename='output', format='svg'):
-        self.view.render(filename, format=format, view=True)
-
-        
-    # CLASSIC ALGORITHMS HOMEMADE
-
-    # -- utilitaries functions
-    
-    def _select_node(self, node_ids, fct):
-        """sélectionne parmi node_ids le node_id qui maximise fct"""
-        selected = node_ids[0]
-        best_value = fct(selected)
-        for i in range(1, len(node_ids)):
-            node_id = node_ids[i]
-            value = fct(node_id)
-            if value > best_value:
-                best_value = value
-                selected = node_id
-        return selected
-
-    # -- BFS : Breadth First Search (parcours en largeur)
-
-    def bfs(self, node_id):
-        a_traiter = [[node_id]]
-        seen = set()
-        voisins = []
-        while a_traiter:
-            un_niveau = a_traiter.pop(0)
-            voisins.append(un_niveau.copy())
-            voisins_a_traiter = []
-            for node in un_niveau:
-                seen.add(node)
-                node_voisins = list(self.neighbors(node))
-                for n in node_voisins:
-                    if n not in seen and n not in voisins_a_traiter:
-                        voisins_a_traiter.append(n)
-            if voisins_a_traiter:
-                a_traiter.append(voisins_a_traiter)
-        return voisins
-
-    # -- DFS : Depth-First Search (parcours en profondeur) 
-
-    def dfs(self, node_id, voisin = set(), res = list()):
-        self.res = res
-        self.voisin = voisin
-        if node_id not in self.voisin:
-            self.res.append(node_id)
-            self.voisin.add(node_id)
-            for i in list(self.neighbors(node_id)):
-                self.dfs(i, self.voisin, self.res)
-        return self.res
-
-    # -- about graph coloration
-    
-    def dsat(self, node_id):
-        """Retourne le nombre de couleurs différentes parmi les voisins"""
-        return len({self.node_view(n_id).color_id for n_id in self.neighbors(node_id) if self.node_view(n_id).color_id != WHITE})
-    
-    def _smallest_color_id(self, node_id):
-        color_id = 0
-        used_color_ids = {self.node_view(v_id).color_id for v_id in self.neighbors(node_id)}
-        while color_id in used_color_ids:
-            color_id += 1
-        return color_id
-    
-    def colorise(self, step=False):
-        """Coloration du graph en uilisant l'algo DSATUR -- si step vaut True
-        chaque étape de la coloration est sauvée dans un fichier"""
-        node_ids = list(self.node_ids())
-        node_id = self._select_node(node_ids, lambda i: self.degree(i))
-        nb_color_used = 1
-        color_id = 0
-        self.node_view(node_id).color_id = color_id
-        node_ids.remove(node_id)
-        if step:
-            nb_step = 1
-            self.color_on()
-            self.write(f'colorise_{nb_step:02}', format='png')
-        while node_ids:
-            node_id = self._select_node(node_ids, lambda i: (self.dsat(i), self.degree(i)))
-            node_ids.remove(node_id)
-            color_id = self._smallest_color_id(node_id)
-            self.node_view(node_id).color_id = color_id
-            if step:
-                nb_step += 1
-                self.color_on()
-                self.write(f'colorise_{nb_step:02}', format='png')
-            if color_id > nb_color_used - 1:
-                nb_color_used = color_id + 1
-        return nb_color_used
-    
-    # CLASSIC ALGORITHMS BY NETWORKX
-    # see https://networkx.org/documentation/stable/reference/algorithms/index.html
-    
-    # -- Coloration
-    
-    def greedy_color(self, strategy):
-        dict_colors = nx.greedy_color(self.model, strategy)
-        print(dict_colors)
-        for node_id, color_id in dict_colors.items():
-            self.node_view(node_id).color_id = color_id
-        return len(set(dict_colors.values()))
-    
-    
-    # ----------------------- TEST ------------------- #
-    # ------------------------------------------------ #
-    
-    # ------------------- GRAPH -----------------#
-
-    
-    def add_weighted_edges_from(self, iterable=None):
-        for s in iterable:
-            self.model.add_edges_from([(s[0],s[1], {'weight':s[2], 'g':self, 'view':EdgeView(self.view, s[0],s[1],s[2])})])
-            self.edge_view(s[0],s[1]).create()
             
-            
-    def predecessor(self, node_id):
-        for i in self.model[node_id]:
-            print(self.model[node_id][i]['label'])
-            print( "=> weight" )
-            print(self.model[node_id][i]['weight']) #poids
-            
+    # -- about attibutes
     
     def is_weighted(self):
         # Return true if the graph is ponderate
         return nx.is_weighted(self.model)
     
     def get_node_attributes(self, node_id):
-        return nx.get_node_attributes(self.model,node_id)
+        return nx.get_node_attributes(self.model, node_id)
     
-    def printGraphInfo(self):
+    def print_graph_info(self):
         for node, info in self.model.adj.items():
             for voisin, info_lien in info.items(): 
                 print(f"Lien [{node} et {voisin}] => poid {info_lien['weight']}")
-    
-    def weighted_edges(self):
-        listE = list()
-        res = list()
-        for node, info in self.model.adj.items():
-            for voisin, info_lien in info.items(): 
-                listE.append(node)
-                listE.append(voisin)
-                listE.append(info_lien['weight'])
-                res.append(listE)
-                listE = list()
-        return res
-                                           
-                
-    # ------------------- GRAPH -----------------#
         
-    # ------------------------------------------------ #
-    # ----------------------- TEST ------------------- #
-            
-            
+    # -- write graph view in file
+    
+    def write(self, filename='output', format='svg', view = True):
+        self.view.render(filename, format=format, view=view)
+
+                    
 class DiGraph(Graph):
     """
     class DiGraph modélise un graphe orienté. 
@@ -736,29 +681,33 @@ class DiGraph(Graph):
     """
 
     
-    def __init__(self, nodes_count=0, engine='neato'):
-        Graph.__init__(self, nodes_count, random=False, directed=True, engine=engine)
+    def __init__(self, nodes_count=0, engine='neato', strict=False):
+        Graph.__init__(self, nodes_count, random=False, directed=True, strict=strict, engine=engine)
         
-    def reset_view(self, engine=None):
+    def reset_view(self, engine=None, strict=False):
         engine = self.engine if engine is None else engine
         d_position = self.export_position()
-        self.view = gv.Digraph(engine=engine, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
+        self.view = gv.Digraph(engine=engine, strict=strict, edge_attr={'arrowsize':ARROWSIZE}, node_attr={'fixedsize':'true', 'width':NODE_WIDTH, 'height':NODE_HEIGHT, 'margin':NODE_MARGIN})
         self.init_view()
         self.import_position(d_position)
+
+    def init_edges_view(self):
+        for s1, s2 in self.edges():
+            informations = self.edge_informations(s1, s2)
+            weight = informations.get('weight', None)
+            self.model.edges[s1, s2]['weight'] = weight
+            self.model.edges[s1, s2]['view'] = EdgeView(self.view, s1, s2, weight)
+            self.edge_view(s1, s2).create()
 
     def copy(self):
         nodes_count = self.number_of_nodes()
         g = DiGraph(nodes_count, engine=self.engine)
-        g.init_view()
-        if self.is_weighted():
-            g.add_weighted_edges_from(self.weighted_edges())
-        else:
-            g.add_edges_from(self.edges())
+        for s1, s2 in self.edges():
+            informations = self.edge_informations(s1, s2)
+            weight = informations.get('weight', None)
+            g.add_edge(s1, s2, weight)    
         g.same_position_as(self)
         return g
-    
-    # ------------------------------------------------------------------------------- #
-    # ------------------------------------------------------------------------------- #
 
     def degree(self, node_id):
         return len(self.neighbors(node_id))
