@@ -18,7 +18,8 @@ L'idée de ce module `pygraph` est de créer un objet `Graph` (ou `DiGraph` ou `
 - Déplacer un sommet ou un groupe de sommets
 - Redimensionner le graphe
 - Sauver le dessin du graphe dans un fichier aux formats usuels (svg, png, jpg, pdf etc.)
-- Lancer des algorithmes usuels : pour l'instant seule la colorisation est disponible
+- Lancer des algorithmes usuels tel que la colorisation, la recherche du plus court chemin etc.
+![graphviz notebook](examples/dijkstra.png)
 
 ## En détail
 
