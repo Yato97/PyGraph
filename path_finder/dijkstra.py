@@ -138,13 +138,13 @@ class Dijkstra:
             self.__graph.write(open_file+"/exported/img/"+str(i), view=False)
             if os.path.exists(str(i)):
                 os.remove(str(i))
-            header += self.make_section("Step : "+str(i), str(open_file+"/exported/img/"+str(i)+".svg"))
+            header += self.make_section("Step : "+str(i), str("img/"+str(i)+".svg"))
             i += 1
         if self.__solved:
             self.dijkstra_path()
             self.color_dijkstra_path()
             self.__graph.write(open_file+"/exported/img/"+str(i), view=False)
-            header += self.make_section("Step : "+str(i), str(open_file+"/exported/img/"+str(i)+".svg"))
+            header += self.make_section("Step : "+str(i), str("img/"+str(i)+".svg"))
         shutil.copyfile(directory +'/res/left.svg', open_file+"/exported/img/"+"left.svg")
         shutil.copyfile(directory +'/res/right.svg', open_file+"/exported/img/"+"right.svg")
         shutil.copyfile(directory +'/res/css.css', open_file+"/exported/css/"+"css.css")
