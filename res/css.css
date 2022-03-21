@@ -17,10 +17,9 @@ h1 {
 }
 #nav-droite, #nav-gauche{
     position: absolute;
-    top: 90%;
-    color: black;
     width: 3em;
     height: 3em;
+    bottom: 10%;
 }
 #nav-droite{
     right: 40%;
