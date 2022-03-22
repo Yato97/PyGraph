@@ -567,8 +567,8 @@ class Graph:
         nodes = len(list(self.node_ids()))
         # Edges
         edges = []
-        for i in DG1.graph.edges():
-            edges.append(list((i[0],i[1],DG1.graph.edge_informations(i[0],i[1]).get('weight'))))
+        for i in self.graph.edges():
+            edges.append(list((i[0],i[1],self.graph.edge_informations(i[0],i[1]).get('weight'))))
         d = {node_id:self.node_view(node_id).pos for node_id in self.node_ids()}
         # Positions 
         positions = []
