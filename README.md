@@ -1,4 +1,5 @@
 # PyGraph
+[![License](https://img.shields.io/badge/License-CC_BY--NC--SA_4.0-green)](#license)
 
 `pygraph` est un petit module Python 3 qui s'appuie sur les modules [`networkx`](https://networkx.org/) et [`graphviz`](https://graphviz.readthedocs.io/) pour modéliser et visualiser des graphes orientés, non orientés et bi-partie.
 
